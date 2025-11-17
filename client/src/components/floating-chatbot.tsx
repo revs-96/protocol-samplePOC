@@ -83,13 +83,13 @@ export function FloatingChatbot() {
       )}
 
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col">
+        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col" data-testid="card-chatbot">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center" data-testid="avatar-bot-header">
                 <Bot className="h-5 w-5 text-primary" />
               </div>
-              <CardTitle className="text-lg">PDF Assistant</CardTitle>
+              <CardTitle className="text-lg" data-testid="text-chatbot-title">PDF Assistant</CardTitle>
             </div>
             <Button
               variant="ghost"
@@ -108,9 +108,10 @@ export function FloatingChatbot() {
                   <div
                     key={index}
                     className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    data-testid={`message-${message.role}-${index}`}
                   >
                     {message.role === "assistant" && (
-                      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center" data-testid={`avatar-assistant-${index}`}>
                         <Bot className="h-4 w-4 text-primary" />
                       </div>
                     )}
@@ -120,22 +121,23 @@ export function FloatingChatbot() {
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
                       }`}
+                      data-testid={`bubble-${message.role}-${index}`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     </div>
                     {message.role === "user" && (
-                      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center" data-testid={`avatar-user-${index}`}>
                         <User className="h-4 w-4 text-primary-foreground" />
                       </div>
                     )}
                   </div>
                 ))}
                 {chatMutation.isPending && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="flex gap-3 justify-start" data-testid="message-loading">
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center" data-testid="avatar-assistant-loading">
                       <Bot className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="rounded-lg px-4 py-2 bg-muted">
+                    <div className="rounded-lg px-4 py-2 bg-muted" data-testid="bubble-loading">
                       <Loader2 className="h-4 w-4 animate-spin" />
                     </div>
                   </div>
@@ -162,7 +164,7 @@ export function FloatingChatbot() {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-2" data-testid="text-ai-powered">
                 AI assistant powered by Groq
               </p>
             </div>

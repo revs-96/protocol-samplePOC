@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 import pandas as pd
 
 # Import extraction utilities
@@ -310,22 +311,32 @@ async def export_data(extraction_id: str, format: str = "csv"):
         raise HTTPException(status_code=400, detail="Invalid format. Use csv, excel, or json")
 
 
+class MessageEntry(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    conversationHistory: list[MessageEntry] = Field(default_factory=list)
+
+
 @app.post("/api/chat")
-async def chat(request: dict):
+async def chat(request: ChatRequest):
     """Handle chatbot conversations using Groq."""
     try:
         from groq import Groq
         
         groq_api_key = os.getenv("GROQ_API_KEY")
         if not groq_api_key:
-            return JSONResponse(
-                content={"response": "I apologize, but the AI service is not configured. Please contact support."},
-                status_code=200
+            raise HTTPException(
+                status_code=503,
+                detail="AI service is not configured. GROQ_API_KEY is missing."
             )
         
         client = Groq(api_key=groq_api_key)
-        user_message = request.get("message", "")
-        conversation_history = request.get("conversationHistory", [])
+        user_message = request.message
+        conversation_history = request.conversationHistory
         
         # System prompt for the PDF assistant
         system_prompt = """You are a helpful AI assistant for a Clinical PDF Data Extraction Platform. 
@@ -345,8 +356,8 @@ Be concise, friendly, and professional. If users ask about specific extracted da
         # Add conversation history
         for msg in conversation_history[-6:]:  # Keep last 6 messages for context
             messages.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", "")
+                "role": msg.role,
+                "content": msg.content
             })
         
         # Add current user message
@@ -364,11 +375,13 @@ Be concise, friendly, and professional. If users ask about specific extracted da
         
         return JSONResponse(content={"response": assistant_response})
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Chat error: {e}")
-        return JSONResponse(
-            content={"response": "I apologize, but I encountered an error. Please try again."},
-            status_code=200
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chat service error: {str(e)}"
         )
 
 
