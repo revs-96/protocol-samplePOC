@@ -310,6 +310,68 @@ async def export_data(extraction_id: str, format: str = "csv"):
         raise HTTPException(status_code=400, detail="Invalid format. Use csv, excel, or json")
 
 
+@app.post("/api/chat")
+async def chat(request: dict):
+    """Handle chatbot conversations using Groq."""
+    try:
+        from groq import Groq
+        
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            return JSONResponse(
+                content={"response": "I apologize, but the AI service is not configured. Please contact support."},
+                status_code=200
+            )
+        
+        client = Groq(api_key=groq_api_key)
+        user_message = request.get("message", "")
+        conversation_history = request.get("conversationHistory", [])
+        
+        # System prompt for the PDF assistant
+        system_prompt = """You are a helpful AI assistant for a Clinical PDF Data Extraction Platform. 
+        
+Your role is to help users with:
+- Understanding how to upload and process PDF documents
+- Explaining extracted data and analytics
+- Answering questions about the platform's features
+- Providing guidance on export options
+- General questions about PDF processing and clinical trial data
+
+Be concise, friendly, and professional. If users ask about specific extracted data, remind them to check the Tables or Analytics pages. Keep responses focused and helpful."""
+        
+        # Build messages for the API
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history
+        for msg in conversation_history[-6:]:  # Keep last 6 messages for context
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        
+        # Add current user message
+        messages.append({"role": "user", "content": user_message})
+        
+        # Call Groq API
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=500,
+        )
+        
+        assistant_response = response.choices[0].message.content
+        
+        return JSONResponse(content={"response": assistant_response})
+        
+    except Exception as e:
+        print(f"Chat error: {e}")
+        return JSONResponse(
+            content={"response": "I apologize, but I encountered an error. Please try again."},
+            status_code=200
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
