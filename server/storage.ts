@@ -1,37 +1,66 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type PdfExtraction, type InsertPdfExtraction } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // PDF Extraction operations
+  createExtraction(extraction: InsertPdfExtraction): Promise<PdfExtraction>;
+  getExtraction(id: string): Promise<PdfExtraction | undefined>;
+  getAllExtractions(): Promise<PdfExtraction[]>;
+  updateExtraction(id: string, updates: Partial<InsertPdfExtraction>): Promise<PdfExtraction | undefined>;
+  deleteExtraction(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private extractions: Map<string, PdfExtraction>;
 
   constructor() {
-    this.users = new Map();
+    this.extractions = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async createExtraction(insertExtraction: InsertPdfExtraction): Promise<PdfExtraction> {
+    const id = randomUUID();
+    const extraction: PdfExtraction = {
+      id,
+      filename: insertExtraction.filename,
+      uploadedAt: new Date(),
+      status: insertExtraction.status || "processing",
+      extractedData: insertExtraction.extractedData || null,
+      analyticsData: insertExtraction.analyticsData || null,
+      errorMessage: insertExtraction.errorMessage || null,
+    };
+    this.extractions.set(id, extraction);
+    return extraction;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getExtraction(id: string): Promise<PdfExtraction | undefined> {
+    return this.extractions.get(id);
+  }
+
+  async getAllExtractions(): Promise<PdfExtraction[]> {
+    return Array.from(this.extractions.values()).sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async updateExtraction(
+    id: string,
+    updates: Partial<InsertPdfExtraction>
+  ): Promise<PdfExtraction | undefined> {
+    const existing = this.extractions.get(id);
+    if (!existing) return undefined;
+
+    const updated: PdfExtraction = {
+      ...existing,
+      ...updates,
+      id, // ensure id doesn't change
+      uploadedAt: existing.uploadedAt, // preserve original upload time
+    };
+    this.extractions.set(id, updated);
+    return updated;
+  }
+
+  async deleteExtraction(id: string): Promise<boolean> {
+    return this.extractions.delete(id);
   }
 }
 
